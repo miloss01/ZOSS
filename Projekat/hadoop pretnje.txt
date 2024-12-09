@@ -1,0 +1,49 @@
+DoS
+- HDFS admin commands (https://www.cvedetails.com/cve/CVE-2014-0229/, https://docs.cloudera.com/documentation/other/security-bulletins/topics/Security-Bulletin.html#concept_i1q_xvk_2r)
+   - Upgrade to CDH 5.0.2 or higher
+
+- Zip slip (https://www.cvedetails.com/cve/CVE-2018-8009/, https://security.snyk.io/research/zip-slip-vulnerability, https://hadoop.apache.org/cve_list.html#cve-2018-8009-http-cve-mitre-org-cgi-bin-cvename-cgi-name-cve-2018-8009-zip-slip-impact-on-apache-hadoop)
+   - Validate path names
+
+- Heap buffer overflow (https://www.cvedetails.com/cve/CVE-2021-37404/)
+   - Upgrade to Apache Hadoop 2.10.2, 3.2.3, 3.3.2 or higher
+
+- UnTar API (https://www.cvedetails.com/cve/CVE-2022-25168/)
+   - Upgrade to Apache Hadoop 2.10.2, 3.2.4, 3.3.3 or upper
+
+Privilege Escalation
+- RPC HDFS MitM attack (https://www.cvedetails.com/cve/CVE-2013-2192/, https://seclists.org/fulldisclosure/2013/Aug/251, https://docs.cloudera.com/documentation/other/security-bulletins/topics/Security-Bulletin.html)
+   - Turn off Kerberos auth
+   - Upgrade to higher version
+
+- NameNode remote privilege escalation (https://www.cvedetails.com/cve/CVE-2016-5393/)
+   - Upgrade to 2.6.5 or 2.7.3
+
+- Access servlets without auth with Kerberos enabled and SPNEGO disabled (https://www.cvedetails.com/cve/CVE-2018-11765/, https://lists.apache.org/thread/p9g4x7rn34wcox5gnc5og2xogydnwr65)
+   - Enable SPNEGO 
+   - Upgrade Apache Hadoop to 2.10.0 or 3.0.1 or upper
+
+- Apache Hadoop Yarn container-executor binary on Linux systems (https://www.cvedetails.com/cve/CVE-2023-26031/, https://lists.apache.org/thread/q9qpdlv952gb4kphpndd5phvl7fkh71r)
+   - Upgrade to Apache Hadoop 3.3.5
+   - Remove execute permission on bin/container-executor
+   - Change owner on bin/container-executor
+   - Replace bin/container-executor with one from 3.3.5
+
+Information Leak
+- Storing Map-Reduce encryption key in filesystem (https://www.cvedetails.com/cve/CVE-2015-1776/, https://lists.apache.org/thread/9tgg1txohklzbcon9bfzt80qzj99ovgn)
+   - Disable Map-Reduce Intermediate data encryption
+   - Manually encrypt/decrypt key
+   - Upgrade to 2.7.0 or upper
+
+- Short circuit reads in HDFS (https://www.cvedetails.com/cve/CVE-2016-5001/, https://seclists.org/oss-sec/2016/q4/698)
+   - Upgrade to 2.7.2 or 2.6.4 or upper
+
+- YARN NodeManger leak password for CredentialProvider (https://www.cvedetails.com/cve/CVE-2016-3086/, https://lists.apache.org/thread/m4hq720yr8pwhvsszl8cn2xfdzzzo13v)
+   - Upgrade to 2.7.3 or 2.6.5 or upper
+   - Restrict access for jceks file
+
+- Map-Reduce job history server leaks private files (https://www.cvedetails.com/cve/CVE-2017-15713/, https://lists.apache.org/thread/nkcwzt7wbk18r8s380onhmxy0w4otzsy)
+   - Upgrade to 2.7.5 or 2.8.3 or 2.9.0 or 3.0.0
+
+- HDFS exposes extended attribute key/value pairs during listXAttrs (https://www.cvedetails.com/cve/CVE-2018-1296/, https://lists.apache.org/thread/s7bzdmj80k965pzx7l7t26b8bo592x3r)
+   - Change permission to listing directory containing file that contains extended attributes
