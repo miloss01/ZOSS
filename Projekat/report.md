@@ -1,44 +1,45 @@
-# Model pretnji veb aplikacije za podršku zubarske ordinacije
+# Model pretnji za sistem zasnovan na Hadoop tehnologiji
 
-Dokument definiše mali podskup rezultata bezbednosne analize dizajna veb aplikacije za podršku zubarske ordinacije i služi kao primer za model pretnji koji će tvoj tim sprovesti.
-
-Dokument se služi terminima vezanim za pretnje i tokove podataka koje definiše [sledeći dokument](https://github.com/Luburic/zoss-model-pretnji/blob/main/modeli/terminologija.md).
+Dokument definiše rezultate bezbednosne analize dizajna sistema zasnovanog na Hadoop tehnologiji. U primeru je korišćena zamišljena web aplikacija (slična Amazon internet prodavnici) koja koristi 
+Hadoop tehnologiju za procesiranje velike količine podataka koja se generiše tokom korišćenja same aplikacije.
 
 # Tokovi podataka analiziranog modula
 
-Analiziran modul predstavlja **aplikaciju za podršku zubarske ordinacije**. Aplikacija pruža sledeće funkcionalnosti:
-- Reklama usluga i vrlina zubarske ordinacije radi privlačenja novih pacijenata,
-- Funkciju zakazivanja pregleda za registrovane pacijente,
-- Funkciju pregleda i analize pregleda za zubare,
-- Funkciju razmene poruka između pacijenta i zubara, gde poruke uz tekst mogu da sadrže fotografije.
+Analiziran modul predstavlja aplikaciju za internet prodaju sa fokusom na Hadoop sistem za analizu prikupljenih podataka o korisnicima. Hadoop podsistem se sastoji iz sledećih komponenti:
+- MapReduce Framework
+- JobTracker
+- TrackerNode klaster
+- HttpFS
+- NameNode
+- DataNode klaster
 
-Softver se sastoji od klijentske aplikacije, izgrađene u React tehnologiji, serverske aplikacije izgrađene u ASP.NET radnom okviru i PostgreSQL baze podataka.
+Dijagram ispod prikazuje za analiziran modul.
 
-Dijagram ispod prikazuje za analiziran modul (m) procesne komponente (mP), skladišta (mS), tokove podataka (mT) i eksterne entitete (mE) sa kojim modul interaguje.
-
-![DFD](https://github.com/user-attachments/assets/3b37e3f9-7626-45f8-8fd1-fad1f0ad9e1a)
+![DFD](./DataFlowDiagram-1.png)
 
 # Resursi i pretnje visokog nivoa
 
-U nastavku definišemo (podskup) resursa sistema i pretnji visokog nivoa za svaki resurs.
+U nastavku definišemo resurse sistema i pretnje visokog nivoa za svaki resurs.
 
 | Resursi         | Pretnje                                         |
 |-----------------|-------------------------------------------------|
 | R1. Informacije o korisnicima | P11. Krađa informacija o korisnicima koji koriste web aplikaciju |
-| R2. Hadoop MapReduce | P21. Denial of service Hadoop servisa |
+| R2. Apache Hadoop | P21. Denial of service Hadoop servisa |
+|| P22. Eskalacija privilegija nad delovima Hadoop podsistema |
 
+## R11. Krađa korisničkih podataka
+Ispod se nalazi lista pretnji niskog nivoa, napada i bezbednosnih kontrola koje se izvlače iz analizirane pretnje:
+![image](./InformationLeak.png)
 
-Prethodni dijagram anotiramo identifikovanim resursima, radi identifikacije pretnji niskog nivoa.
+## R21. Rušenje (DoS) Hadoop podsistema
+Ispod se nalazi lista pretnji niskog nivoa, napada i bezbednosnih kontrola koje se izvlače iz analizirane pretnje:
 
-![image](https://github.com/user-attachments/assets/afc090c8-3af1-47e0-8136-c3bb3dcaae98)
+![image](./Dos.png)
 
-## R21. Rušenje (DoS) ASP.NET aplikacije - analiza pretnje
+## R22. Eskalacija privilegija nad delovima Hadoop podsistema
+Ispod se nalazi lista pretnji niskog nivoa, napada i bezbednosnih kontrola koje se izvlače iz analizirane pretnje:
 
-Slika ispod sumira (podskup) pretnji niskog nivoa, napada i bezbednosnih kontrola koje se izvlače iz analizirane pretnje.
-
-![image](https://github.com/user-attachments/assets/d7c6ff12-9f65-42cb-9848-ba22b9c953e7)
-
-U nastavku diskutujemo napad A2133, gde objašnjavamo kontekst u kom se napad izvršava, sam vektor napada (kako izgleda napad) i kako uz pomoć njega napadač realizuje pretnju. Zatim analiziramo bezbednosne kontrole za sprečavanje napada.
+![image](./PrivilegeEscalation.png)
 
 ### A2133. Upload and execute scripts - analiza napada
 
