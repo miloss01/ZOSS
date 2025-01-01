@@ -37,7 +37,7 @@ content = "This is a malicious file that will be unpacked to a specific director
 create_malicious_tar(tar_path, target_file_path, content)
 ```
 
-Ranjivost se kod Hadoop sistema moze eksploatisati tako sto se maliciozni TAR fajl prebaci u HDFS i njegovo ekstraktovanje izvrsi pomocu Java programa koji nebezbedno rukuje putanjama na koje treba da se ekstraktuje TAR fajl. Takav Java program je dat u nastavku:
+Ranjivost se kod Hadoop sistema može eksploatisati tako što se maliciozni TAR fajl prebaci u HDFS i njegovo ekstraktovanje izvrši pomoću Java programa koji nebezbedno rukuje putanjama na koje treba da se ekstraktuje TAR fajl. Takav Java program je dat u nastavku:
 
 ```java
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -111,13 +111,13 @@ public class ExploitHadoopTar {
     }
 }
 ```
-Pokretanjem ovog Java programa doci ce do raspakivanja TAR fajla na putanje koje su podesene u TAR fajlu bez ikakve provere validnosti tih putanja. Pokretanje se vrsi komandom: `hadoop jar path/to/jar/ExploitHadoopTar.jar ExploitHadoopTar path/to/tar/on/hdfs/malicious.tar`.
+Pokretanjem ovog Java programa doći će do raspakivanja TAR fajla na putanje koje su podešene u TAR fajlu bez ikakve provere validnosti tih putanja. Pokretanje se vrši komandom: `hadoop jar path/to/jar/ExploitHadoopTar.jar ExploitHadoopTar path/to/tar/on/hdfs/malicious.tar`.
 
 
 ### Bezbednosne kontrole
 
 1. Validacija raspakovanih putanja prilikom raspakivanja
-2. Kreiranje posebnog korisnika za pokretanje Hadoop aplikacije sa ogranicenjima za pisanje i citanje
+2. Kreiranje posebnog korisnika za pokretanje Hadoop aplikacije sa ograničenjima za pisanje i čitanje
 
 #### Validacija raspakovanih putanja prilikom raspakivanja
 Validacija putanja se ogleda u proveri da li je putanja apsolutna i da li sadrzi `../` za povratak u roditeljski direktorijum. U nastavku je prikazana funkcija za validaciju i izmenjeni deo koda iz prethodnog primera:
@@ -147,7 +147,13 @@ if (!isPathValid(entryName)) {
 }
 ```
 
-#### Kreiranje posebnog korisnika za pokretanje Hadoop aplikacije sa ogranicenjima za pisanje i citanje
-Celi problem se moze preduprediti time sto ce se Hadoop aplikacija pokrenuti tako da nema dozvole za pisanje i citanje na bilo kojoj putanji u fajl sistemu. Potrebno je kreirati korisnika koji ce imati dozvoljeno pisanje i citanje samo iz odredjenih fajlova. Citanje treba biti dozvoljeno u okviru foldera gde je instaliran Hadoop radi mogucnosti citanja konfiguracionih fajlova kao i pristupa podacima u HDFS. Putanje za upisivanje novih podataka je potrebno podesiti po potrebama sistema. Ukoliko se koristi Hadoop MapReduce sistem, potrebno je tacno definisati iz kog direktorijuma je dozvoljeno citanje ulaznih podataka kao i u koji direktorijum je dozvoljeno upisivanje rezultata. Takva provera je potrebna samo ukoliko se barata podacima sa lokalnog racunara, a ne direktno iz HDFS. 
+#### Kreiranje posebnog korisnika za pokretanje Hadoop aplikacije sa ograničenjima za pisanje i čitanje
+Rešenja leži u izolaciji aplikacije koja obezbeđuje da ona ima pristup samo onim resursima koji su potrebni za njen rad. Ovaj pristup eliminiše mogućnost neovlašćenog pristupa ili manipulacije fajlovima van predviđenih putanja na sistemu, čime se smanjuje šansa za zloupotrebu.
 
-Ovakav sistem zastite je sproveden na nivou operativnog sistema pa se nacini implementacije mogu razlikovati. Sustina je da se kreira novi korisnik u operativnom sistemu i da mu se dodele dozvnoljeni direktorijume u koje moze da upisuje i cita fajlove, a da se ostali zabrane. Nakon toga je potrebno Hadoop pokrenuti sa permisijama tog korisnika.
+Prvi korak u implementaciji je kreiranje korisničkog naloga na nivou operativnog sistema koji je specifičan za Hadoop aplikaciju. Ovaj korisnik treba da ima definisana prava pristupa direktorijumima i fajlovima. Prava treba da budu ograničena samo na one direktorijume koji su ključni za funkcionisanje aplikacije. Na primer, čitanje konfiguracionih fajlova i pristupanje HDFS-u. Pristup za čitanje treba omogućiti samo unutar direktorijuma gde je Hadoop instaliran, kako bi se osigurala pravilna konfiguracija i rad. Na ovaj način, čak i u slučaju kompromitovanja aplikacije, napadač neće moći da pristupi sistemskim fajlovima ili podacima van definisanih granica.
+
+Pored čitanja, potrebno je pažljivo definisati i dozvoljene lokacije za upisivanje novih podataka. Ovo je posebno važno u slučaju kada Hadoop aplikacija koristi lokalni fajl sistem za skladištenje rezultata ili privremenih podataka, a ne direktno HDFS. Ovi direktorijumi za upisivanje treba da budu jasno specificirani. Dodeljivanje prava pristupa ovim direktorijumima treba da bude ograničeno na korisnika pod kojim se aplikacija izvršava. Time bi se osigurali da prethodno prikazani TAR fajl ne može biti raspakovan na bilo kojoj putanji, već samo na onim putanjama koje su definisane konfiguracijom korisničkog naloga.
+
+Ukoliko se koristi Hadoop MapReduce sistem, potrebno je definisati direktorijume iz kojih aplikacija može da čita ulazne podatke i u koje može da zapisuje rezultate. Ova ograničenja treba primeniti na svim nivoima aplikacije kako bi se sprečilo namerno čitanje i upisivanje podataka van predviđenih direktorijuma.
+
+Ovakav sistem zaštite zasniva se na postavljanju ograničenja na nivou operativnog sistema. Način implementacije zavisi od operativnog sistema, ali je suština da treba kreirati specifičnog korisnika sa ograničenim pravima pristupa i definisati direktorijume kojima korisnik može da pristupa. Nakon toga, Hadoop aplikacija se pokreće sa dozvolama tog korisnika, što osigurava da aplikacija poštuje postavljena pravila.
