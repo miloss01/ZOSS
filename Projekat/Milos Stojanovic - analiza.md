@@ -152,7 +152,7 @@ Celi problem se moze preduprediti time sto ce se Hadoop aplikacija pokrenuti tak
 
 Ovakav sistem zastite je sproveden na nivou operativnog sistema pa se nacini implementacije mogu razlikovati. Sustina je da se kreira novi korisnik u operativnom sistemu i da mu se dodele dozvnoljeni direktorijume u koje moze da upisuje i cita fajlove, a da se ostali zabrane. Nakon toga je potrebno Hadoop pokrenuti sa permisijama tog korisnika.
 
-## Izvrsavanje proizvojlnih komandi sa permisijama HDFS servisa (CVE-2016-5393) - analiza
+## Izvršavanje proizvoljnih komandi sa permisijama HDFS servisa (CVE-2016-5393) - analiza
 
 Jedna od pomoćnih klasa (`hadoop-common-project/hadoop-common/src/main/java/org/apache/hadoop/util/Shell.java`) koja se bavi obradom shell komandi radi pod pretpostavkom da komanda neće imati neke od specijalnih karaktera u sebi. Ovakva pretpostavka dovodi do toga da se prilikom izvršavanja bash komande može ubaciti maliciozna bash komanda. Napad koji eksploatiše ovu ranjivost je command injection napad koji se može izvršiti zbog neadekvatne obrade navodnika u komandi. Da bi se napad izvršio, korisnik mora biti autentifikovan i mora mu biti omogućeno korišćenje HDFS servisa.
 
