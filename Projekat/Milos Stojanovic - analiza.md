@@ -1,4 +1,4 @@
-## Zip Slip - analiza
+## Zip Slip (CVE-2018-8009) - analiza
 
 Zip Slip je ranjivost koja se ispoljava prilikom obrade arhivskih fajlova, npr. ZIP i TAR. Ova ranjivost omogućava napadačima da iskoriste nebezbednu logiku raspakivanja fajlova kako bi zapisali zlonamerni sadržaj na neautorizovane lokacije u fajl sistemu.
 
@@ -37,7 +37,7 @@ content = "This is a malicious file that will be unpacked to a specific director
 create_malicious_tar(tar_path, target_file_path, content)
 ```
 
-Ranjivost se kod Hadoop sistema može eksploatisati tako što se maliciozni TAR fajl prebaci u HDFS i njegovo ekstraktovanje izvrši pomoću Java programa koji nebezbedno rukuje putanjama na koje treba da se ekstraktuje TAR fajl. Takav Java program je dat u nastavku:
+Ranjivost se kod Hadoop sistema moze eksploatisati tako sto se maliciozni TAR fajl prebaci u HDFS i njegovo ekstraktovanje izvrsi pomocu Java programa koji nebezbedno rukuje putanjama na koje treba da se ekstraktuje TAR fajl. Takav Java program je dat u nastavku:
 
 ```java
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -111,13 +111,13 @@ public class ExploitHadoopTar {
     }
 }
 ```
-Pokretanjem ovog Java programa doći će do raspakivanja TAR fajla na putanje koje su podešene u TAR fajlu bez ikakve provere validnosti tih putanja. Pokretanje se vrši komandom: `hadoop jar path/to/jar/ExploitHadoopTar.jar ExploitHadoopTar path/to/tar/on/hdfs/malicious.tar`.
+Pokretanjem ovog Java programa doci ce do raspakivanja TAR fajla na putanje koje su podesene u TAR fajlu bez ikakve provere validnosti tih putanja. Pokretanje se vrsi komandom: `hadoop jar path/to/jar/ExploitHadoopTar.jar ExploitHadoopTar path/to/tar/on/hdfs/malicious.tar`.
 
 
 ### Bezbednosne kontrole
 
 1. Validacija raspakovanih putanja prilikom raspakivanja
-2. Kreiranje posebnog korisnika za pokretanje Hadoop aplikacije sa ograničenjima za pisanje i čitanje
+2. Kreiranje posebnog korisnika za pokretanje Hadoop aplikacije sa ogranicenjima za pisanje i citanje
 
 #### Validacija raspakovanih putanja prilikom raspakivanja
 Validacija putanja se ogleda u proveri da li je putanja apsolutna i da li sadrzi `../` za povratak u roditeljski direktorijum. U nastavku je prikazana funkcija za validaciju i izmenjeni deo koda iz prethodnog primera:
@@ -147,13 +147,30 @@ if (!isPathValid(entryName)) {
 }
 ```
 
-#### Kreiranje posebnog korisnika za pokretanje Hadoop aplikacije sa ograničenjima za pisanje i čitanje
-Rešenja leži u izolaciji aplikacije koja obezbeđuje da ona ima pristup samo onim resursima koji su potrebni za njen rad. Ovaj pristup eliminiše mogućnost neovlašćenog pristupa ili manipulacije fajlovima van predviđenih putanja na sistemu, čime se smanjuje šansa za zloupotrebu.
+#### Kreiranje posebnog korisnika za pokretanje Hadoop aplikacije sa ogranicenjima za pisanje i citanje
+Celi problem se moze preduprediti time sto ce se Hadoop aplikacija pokrenuti tako da nema dozvole za pisanje i citanje na bilo kojoj putanji u fajl sistemu. Potrebno je kreirati korisnika koji ce imati dozvoljeno pisanje i citanje samo iz odredjenih fajlova. Citanje treba biti dozvoljeno u okviru foldera gde je instaliran Hadoop radi mogucnosti citanja konfiguracionih fajlova kao i pristupa podacima u HDFS. Putanje za upisivanje novih podataka je potrebno podesiti po potrebama sistema. Ukoliko se koristi Hadoop MapReduce sistem, potrebno je tacno definisati iz kog direktorijuma je dozvoljeno citanje ulaznih podataka kao i u koji direktorijum je dozvoljeno upisivanje rezultata. Takva provera je potrebna samo ukoliko se barata podacima sa lokalnog racunara, a ne direktno iz HDFS. 
 
-Prvi korak u implementaciji je kreiranje korisničkog naloga na nivou operativnog sistema koji je specifičan za Hadoop aplikaciju. Ovaj korisnik treba da ima definisana prava pristupa direktorijumima i fajlovima. Prava treba da budu ograničena samo na one direktorijume koji su ključni za funkcionisanje aplikacije. Na primer, čitanje konfiguracionih fajlova i pristupanje HDFS-u. Pristup za čitanje treba omogućiti samo unutar direktorijuma gde je Hadoop instaliran, kako bi se osigurala pravilna konfiguracija i rad. Na ovaj način, čak i u slučaju kompromitovanja aplikacije, napadač neće moći da pristupi sistemskim fajlovima ili podacima van definisanih granica.
+Ovakav sistem zastite je sproveden na nivou operativnog sistema pa se nacini implementacije mogu razlikovati. Sustina je da se kreira novi korisnik u operativnom sistemu i da mu se dodele dozvnoljeni direktorijume u koje moze da upisuje i cita fajlove, a da se ostali zabrane. Nakon toga je potrebno Hadoop pokrenuti sa permisijama tog korisnika.
 
-Pored čitanja, potrebno je pažljivo definisati i dozvoljene lokacije za upisivanje novih podataka. Ovo je posebno važno u slučaju kada Hadoop aplikacija koristi lokalni fajl sistem za skladištenje rezultata ili privremenih podataka, a ne direktno HDFS. Ovi direktorijumi za upisivanje treba da budu jasno specificirani. Dodeljivanje prava pristupa ovim direktorijumima treba da bude ograničeno na korisnika pod kojim se aplikacija izvršava. Time bi se osigurali da prethodno prikazani TAR fajl ne može biti raspakovan na bilo kojoj putanji, već samo na onim putanjama koje su definisane konfiguracijom korisničkog naloga.
+## Izvrsavanje proizvojlnih komandi sa permisijama HDFS servisa (CVE-2016-5393) - analiza
 
-Ukoliko se koristi Hadoop MapReduce sistem, potrebno je definisati direktorijume iz kojih aplikacija može da čita ulazne podatke i u koje može da zapisuje rezultate. Ova ograničenja treba primeniti na svim nivoima aplikacije kako bi se sprečilo namerno čitanje i upisivanje podataka van predviđenih direktorijuma.
+Jedna od pomoćnih klasa (`hadoop-common-project/hadoop-common/src/main/java/org/apache/hadoop/util/Shell.java`) koja se bavi obradom shell komandi radi pod pretpostavkom da komanda neće imati neke od specijalnih karaktera u sebi. Ovakva pretpostavka dovodi do toga da se prilikom izvršavanja bash komande može ubaciti maliciozna bash komanda. Napad koji eksploatiše ovu ranjivost je command injection napad koji se može izvršiti zbog neadekvatne obrade navodnika u komandi. Da bi se napad izvršio, korisnik mora biti autentifikovan i mora mu biti omogućeno korišćenje HDFS servisa.
 
-Ovakav sistem zaštite zasniva se na postavljanju ograničenja na nivou operativnog sistema. Način implementacije zavisi od operativnog sistema, ali je suština da treba kreirati specifičnog korisnika sa ograničenim pravima pristupa i definisati direktorijume kojima korisnik može da pristupa. Nakon toga, Hadoop aplikacija se pokreće sa dozvolama tog korisnika, što osigurava da aplikacija poštuje postavljena pravila.
+Primer maliciozne komande bi bio `rm -rf /some/path $userInput` gde `userInput` sadrži `" ; rm -rf /important/path"` i gde bi rezultat bio komanda `rm -rf /some/path ; rm -rf /important/path` koja bi obrisala i `/some/path` i `/important/path`. Ovakvim napadom je moguće izvršiti bilo koju komandu pod permisijama HDFS servisa.
+
+#### Bezbednosne kontrole
+Potrebno je sanitizovati korisnički unos i ne dozvoliti da se korisnički unos smatra komandom. To je učinjeno sledećom funkcijom ([fix](https://github.com/apache/hadoop/pull/119) kada je ranjivost popravljena i dodata funkcija za sanitizaciju):
+```java
+static String bashQuote(String arg) {
+    StringBuilder buffer = new StringBuilder(arg.length() + 2);
+    buffer.append('\'');
+    buffer.append(arg.replace("'", "'\\''"));
+    buffer.append('\'');
+    return buffer.toString();
+}
+```
+Ovakva obrada dovodi do toga da se korisnički unos transformiše u string. Na početak i kraj korisničkog unosa se dodaju `'` čime se obezbeđuje da se korisnički unos smatra stringom. Ako originalni string sadrži jedan ili više apostrofa, oni se zamenjuju nizom `'\\''`. Ovaj izraz izlazi iz trenutnog navodnika, dodaje karakter `'` kao deo stringa, a zatim ponovo ulazi u režim stringa. Time se postiže da se kompletan korisnički unos transformiše u string i onemogućava njegovo izvršenje.
+
+Korišćenjem ove funkcije prethodna maliciozna komanda se pretvara u `rm -rf /some/path ' ; rm -rf /important/path'` i nije je moguće izvršiti.
+
+Ranjivost je prisutna u Hadoop verzijama: `2.6.x` pre `2.6.5` i `2.7.x` pre `2.7.3`. Ranjivost je popravljena u Hadoop verzijama: `2.8.0`, `2.7.3`, `2.6.5`, `3.0.0-alpha1` pa se kao mitigacija preporučuje prebacivanje na navedene verzije.
